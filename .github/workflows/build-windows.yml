@@ -26,7 +26,7 @@ jobs:
 
     - name: Compilar EXE con PyInstaller
       run: |
-        pyinstaller --name "JAM" --onefile jam/main.py
+        pyinstaller --name "JAM" --onefile --collect-all chromadb --collect-all llama_cpp --collect-all pydantic --collect-all huggingface_hub --collect-all onnxruntime --collect-all tokenizers jam/main.py
 
     - name: Subir el EXE resultante
       uses: actions/upload-artifact@v4
