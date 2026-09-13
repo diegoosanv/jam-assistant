@@ -1,10 +1,10 @@
-# JAM (Just Another Mind) 🧠🤖
+# JAM (Just Another Mind) 
 
 JAM es un asistente de Inteligencia Artificial **local, privado y autónomo** diseñado para ejecutarse enteramente en tu propio hardware (Linux, macOS y Windows). 
 
 Con un diseño basado en terminal (TUI) de estética futurista y minimalista, JAM incorpora un sistema dual de modelos (Orquestador ligero + Generador pesado), memoria vectorial persistente a largo plazo (RAG) y conciencia de entorno (clima y geolocalización).
 
-## ✨ Características Principales
+##  Características Principales
 
 - **Privacidad Total:** Los datos, la memoria RAG y los perfiles de usuario se encriptan (vectorizan) y se guardan de forma local en tu disco. Ningún dato privado viaja a la nube.
 - **Arquitectura Dual Híbrida:** 
@@ -17,9 +17,9 @@ Con un diseño basado en terminal (TUI) de estética futurista y minimalista, JA
 
 ---
 
-## 🚀 Instalación y Uso (Fase Interfaz y Orquestador)
+## Instalación y Uso (Fase Interfaz y Orquestador)
 
-### 🐧 Linux y 🍏 macOS
+### Linux y macOS
 
 ```bash
 # 1. Clonar el repositorio
@@ -37,7 +37,7 @@ pip install -r requirements.txt
 python3 jam/main.py
 ```
 
-### 🪟 Windows
+###  Windows
 
 Abre **Windows Terminal**, PowerShell o Símbolo del Sistema:
 
@@ -59,7 +59,7 @@ python jam\main.py
 
 ---
 
-## 🧠 Activación de Inteligencia Artificial (Llama.cpp)
+##  Activación de Inteligencia Artificial (Llama.cpp)
 
 Para que JAM deje de usar la simulación y pase a procesar inferencia real descargando los modelos GGUF, debes instalar el motor de inferencia (`llama-cpp-python`).
 
@@ -94,3 +94,4 @@ pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-c
 
 ## 🤝 Contribuciones
 ¡Los Pull Requests son bienvenidos! Para cambios mayores, abre un *issue* primero para discutir qué te gustaría modificar.
+# jam-assistant
