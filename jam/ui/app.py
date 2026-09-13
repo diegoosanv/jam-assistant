@@ -23,6 +23,18 @@ Input:focus { border: none; }
 .subtitle { color: #666666; margin-top: 1; }
 """
 
+def validate_key(key: str) -> bool:
+    key = key.strip().upper()
+    if not key.startswith("JAM-") or len(key) != 19:
+        return False
+    core = key[:-2]
+    try:
+        checksum_provided = int(key[-2:])
+        checksum_calculated = sum(ord(c) for c in core.replace("-", "")) % 100
+        return checksum_provided == checksum_calculated
+    except:
+        return False
+
 class DummyMemory:
     def add_user_fact(self, fact): pass
     def recall_user_facts(self, q, n_results): return []
@@ -30,22 +42,22 @@ class DummyMemory:
 class Sidebar(Static):
     def compose(self) -> ComposeResult:
         yield Static("JAM CORE v1.0", classes="title")
-        self.sys_status = Static("SYSTEM: ONLINE", classes="system-text")
+        self.sys_status = Static("SYSTEM: LOCKED", classes="system-text")
         yield self.sys_status
         
         self.env_title = Static("[ENV / COMMS]", classes="subtitle")
         yield self.env_title
-        self.env_info = Static("FETCHING...")
+        self.env_info = Static("OFFLINE")
         yield self.env_info
         
         self.hw_title = Static("[HARDWARE]", classes="subtitle")
         yield self.hw_title
-        self.hw_info = Static("SCANNING...")
+        self.hw_info = Static("OFFLINE")
         yield self.hw_info
         
         self.model_title = Static("[MODELS]", classes="subtitle")
         yield self.model_title
-        self.model_info = Static("AWAITING DATA...")
+        self.model_info = Static("OFFLINE")
         yield self.model_info
 
 class JamApp(App):
@@ -58,6 +70,7 @@ class JamApp(App):
         self.memory = DummyMemory()
         self.engine = None
         self.engine_ready = False
+        self.needs_license = False
         self.env_data = {"city": "OFFLINE", "temp": "--"}
 
     def compose(self) -> ComposeResult:
@@ -72,15 +85,34 @@ class JamApp(App):
 
     def on_mount(self) -> None:
         self.title = "JAM"
-        self.run_worker(self.init_system())
+        self.run_worker(self.check_license())
 
-    async def init_system(self) -> None:
+    async def check_license(self) -> None:
+        log = self.query_one("#chat-log", Log)
+        os.makedirs("./jam_data", exist_ok=True)
+        
+        if not os.path.exists("./jam_data/license.key"):
+            log.write_line("[SISTEMA] INICIALIZACIÓN PAUSADA.")
+            log.write_line("[SISTEMA] SOFTWARE PROTEGIDO. SE REQUIERE LICENCIA VÁLIDA.")
+            log.write_line("[SISTEMA] Ingresa tu clave de acceso (Formato: JAM-XXXX-YYYY-ZZZZ):")
+            self.needs_license = True
+        else:
+            with open("./jam_data/license.key", "r") as f:
+                saved_key = f.read().strip()
+                if validate_key(saved_key):
+                    self.query_one(Sidebar).sys_status.update("SYSTEM: ONLINE")
+                    self.run_worker(self.resume_init_system())
+                else:
+                    log.write_line("[ERROR] LICENCIA CORRUPTA. Ingresa una nueva clave válida:")
+                    self.needs_license = True
+
+    async def resume_init_system(self) -> None:
         log = self.query_one("#chat-log", Log)
         sidebar_env = self.query_one(Sidebar).env_info
         sidebar_hw = self.query_one(Sidebar).hw_info
         sidebar_model = self.query_one(Sidebar).model_info
         
-        log.write_line("[SISTEMA] INICIALIZANDO JAM CORE...")
+        log.write_line("\\n[SISTEMA] LICENCIA AUTENTICADA. INICIALIZANDO JAM CORE...")
         
         # Env Data
         self.env_data = get_location_and_weather()
@@ -99,7 +131,6 @@ class JamApp(App):
         gen_param = recs['generator'].get('name', 'HEAVY').split(' ')[0]
         sidebar_model.update(f"MNG: {mng_param}\\nGEN: {gen_param}")
         
-        # Print detected hardware to terminal
         log.write_line(f"\\n[SISTEMA] HARDWARE ENCONTRADO:")
         log.write_line(f" -> OS: {report['os']}")
         log.write_line(f" -> CPU: {report['cpu']['architecture']} ({report['cpu']['physical_cores']} cores)")
@@ -107,7 +138,6 @@ class JamApp(App):
         log.write_line(f" -> GPU: {report['gpu']['type']} (VRAM: {report['gpu']['vram_gb']} GB)")
         log.write_line(f" -> Motor Asignado: {recs['generator']['name']}")
         
-        # Start background load
         self.run_worker(self.load_ai_engine(recs))
 
     async def load_ai_engine(self, recs):
@@ -118,25 +148,21 @@ class JamApp(App):
         log.write_line(f"[SISTEMA] Se requiere descargar el modelo base desde los servidores.")
         log.write_line(f"[SISTEMA] Por favor espera, esto puede tomar varios minutos según tu internet...")
         
-        # Show indeterminate progress bar
         pb.display = True
-        pb.advance(50) # Just to show some bar
+        pb.advance(50)
         
         loop = asyncio.get_event_loop()
         
         def _load():
             try:
-                # Load Inference
                 from core.inference import JamInferenceEngine
                 self.engine = JamInferenceEngine(recs['generator'])
                 
-                # Callback to print to log thread-safely
                 def _log_cb(msg):
                     self.call_from_thread(log.write_line, msg)
                     
                 success = self.engine.load_model(log_callback=_log_cb)
                 
-                # Load Memory RAG
                 from memory.vector_db import JamMemory
                 self.memory = JamMemory()
                 self.call_from_thread(log.write_line, "[SISTEMA] BASE DE DATOS VECTORIAL (RAG) COMPILADA.")
@@ -150,7 +176,6 @@ class JamApp(App):
         
         pb.display = False
         
-        # Onboarding
         os.makedirs("./jam_data", exist_ok=True)
         self.is_first_time = not os.path.exists("./jam_data/onboarding_done")
         self.onboarding_step = 0
@@ -170,17 +195,31 @@ class JamApp(App):
         self.query_one("#chat-input", Input).focus()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
-        user_input = event.value
+        user_input = event.value.strip()
         log = self.query_one("#chat-log", Log)
         input_widget = self.query_one("#chat-input", Input)
         
-        if user_input.strip() == "":
+        if user_input == "":
             return
             
-        log.write_line(f"\\n[USER] {user_input}")
         input_widget.value = ""
         
-        # Onboarding Capture
+        # Manejo de Licencia
+        if getattr(self, "needs_license", False):
+            if validate_key(user_input):
+                with open("./jam_data/license.key", "w") as f:
+                    f.write(user_input.upper())
+                log.write_line(f"[USER] {user_input.upper()}")
+                self.needs_license = False
+                self.query_one(Sidebar).sys_status.update("SYSTEM: ONLINE")
+                self.run_worker(self.resume_init_system())
+            else:
+                log.write_line(f"[USER] {user_input}")
+                log.write_line("[ERROR] Clave inválida. Intenta nuevamente:")
+            return
+
+        log.write_line(f"\\n[USER] {user_input}")
+        
         if getattr(self, "is_first_time", False) and self.engine_ready:
             if self.onboarding_step == 1:
                 self.memory.add_user_fact(f"El usuario se llama: {user_input}")
@@ -199,7 +238,6 @@ class JamApp(App):
                 self.onboarding_step = 0
             return
             
-        # Standard AI Generation (Async to not freeze UI)
         self.run_worker(self.generate_ai_response(user_input))
         
     async def generate_ai_response(self, user_input):
@@ -215,8 +253,6 @@ class JamApp(App):
         
         def _process():
             from core.orchestrator import JamOrchestrator
-            
-            # Simple heuristic for MNG simulation to save resources
             mock_mng = {"is_new_fact": False, "requires_search": False}
             if "me llamo" in user_input.lower() or "soy " in user_input.lower():
                 mock_mng["is_new_fact"] = True
@@ -225,13 +261,11 @@ class JamApp(App):
             orchestrator = JamOrchestrator(self.memory, self.env_data)
             pipeline_result = orchestrator.process_pipeline(user_input, mock_mng)
             
-            # Print intermediate steps safely
             for step_log in pipeline_result["logs"]:
                 self.call_from_thread(log.write_line, step_log)
                 
             self.call_from_thread(log.write_line, "[GEN] Generando respuesta neuronal profunda...")
             
-            # Real Generation!
             response = self.engine.generate(pipeline_result["gen_prompt"], max_tokens=256)
             return response
             
