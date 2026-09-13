@@ -95,3 +95,4 @@ pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-c
 ## 🤝 Contribuciones
 ¡Los Pull Requests son bienvenidos! Para cambios mayores, abre un *issue* primero para discutir qué te gustaría modificar.
 # jam-assistant
+# jam-assistant
