@@ -1,0 +1,35 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout del código
+      uses: actions/checkout@v3
+
+    - name: Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Instalar dependencias
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Compilar EXE con PyInstaller
+      run: |
+        pyinstaller --name "JAM" --onefile jam/main.py
+
+    - name: Subir el EXE resultante
+      uses: actions/upload-artifact@v3
+      with:
+        name: JAM-Windows-Executable
+        path: dist/JAM.exe
