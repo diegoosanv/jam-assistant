@@ -1,0 +1,18 @@
+# Entornos virtuales de Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# JAM Data (Base de datos vectorial, memoria RAG, estado de onboarding)
+jam_data/
+
+# Modelos de Inteligencia Artificial (Evitar subir archivos gigantes a GitHub)
+*.gguf
+*.bin
+
+# Archivos de SO
+.DS_Store
+Thumbs.db
