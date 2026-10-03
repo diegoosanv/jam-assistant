@@ -25,7 +25,7 @@ Input:focus { border: none; }
 
 def validate_key(key: str) -> bool:
     key = key.strip().upper()
-    if not key.startswith("JAM-") or len(key) != 19:
+    if not key.startswith("JAM-") or len(key) != 18:
         return False
     core = key[:-2]
     try:
