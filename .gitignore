@@ -1,10 +1,25 @@
-# Entornos virtuales de Python
+# Variables de entorno, licencias y secretos (NUNCA subir a Git)
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+license.key
+
+# Entornos virtuales y caché de Python
 .venv/
 venv/
 env/
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
+
+# Empaquetado y compilación (PyInstaller / Cython)
+build/
+dist/
+*.spec
+*.so
 
 # JAM Data (Base de datos vectorial, memoria RAG, estado de onboarding)
 jam_data/
@@ -12,7 +27,13 @@ jam_data/
 # Modelos de Inteligencia Artificial (Evitar subir archivos gigantes a GitHub)
 *.gguf
 *.bin
+*.onnx
 
-# Archivos de SO
+# Archivos de SO e IDEs
+.idea/
+.vscode/
 .DS_Store
 Thumbs.db
+*.log
+*.save
+*~
